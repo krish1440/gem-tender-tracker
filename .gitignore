@@ -1,0 +1,20 @@
+# Configuration & Secrets
+config.json
+
+# Local State & Logs
+seen_tenders.json
+run.log
+*.log
+
+# Python Cache
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+
+# Virtual Environments & IDE
+venv/
+.env
+.vscode/
+.idea/
+

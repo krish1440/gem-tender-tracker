@@ -1,0 +1,14 @@
+{
+  "email": {
+    "sender_email": "your_email@gmail.com",
+    "app_password": "your_16_char_google_app_password",
+    "recipient_email": "recipient_email@gmail.com"
+  },
+  "watched_categories": [
+    "Travis",
+    "Veterinary Artificial Insemination Straws (low Absorption Type)",
+    "Foreign Body (metal) Detector For Veterinary Use",
+    "Cattle Lifting Machine"
+  ]
+}
+
