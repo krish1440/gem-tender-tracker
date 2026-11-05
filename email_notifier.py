@@ -1,13 +1,20 @@
 """
 Email Notification Service for GeM Tender Alerts
-Sends modern, mobile-responsive HTML emails matching UX Pilot design.
+Sends modern, mobile-responsive HTML emails matching UX Pilot design with exact header.
 """
 
 import smtplib
+import os
+import base64
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
+from email.mime.image import MIMEImage
 from datetime import datetime
 from typing import Dict, List
+
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+BUILDING_LOGO_PATH = os.path.join(BASE_DIR, "building_logo.png")
+SHIELD_LOGO_PATH = os.path.join(BASE_DIR, "shield_logo.png")
 
 
 class EmailNotifier:
@@ -25,7 +32,6 @@ class EmailNotifier:
         if not date_str:
             return "N/A"
         try:
-            # Strip trailing Z
             clean = date_str.replace("Z", "")
             if "T" in clean:
                 dt = datetime.fromisoformat(clean)
@@ -48,14 +54,37 @@ class EmailNotifier:
         subject = f"🔔 GeM Alert: {total_new} New Tender{'s' if total_new > 1 else ''} Found Today"
         html_body = self._build_html_template(new_tenders_by_category, total_new)
 
-        msg = MIMEMultipart("alternative")
+        msg = MIMEMultipart("related")
         msg["Subject"] = subject
         msg["From"] = f"GeM Tender Alert <{self.sender_email}>"
         msg["To"] = self.recipient_email
 
+        alt_part = MIMEMultipart("alternative")
         plain_text = f"Hello,\n\nFound {total_new} new tenders on GeM matching your watched categories.\nPlease view this email in HTML for full cards and download links."
-        msg.attach(MIMEText(plain_text, "plain"))
-        msg.attach(MIMEText(html_body, "html"))
+        alt_part.attach(MIMEText(plain_text, "plain"))
+        alt_part.attach(MIMEText(html_body, "html"))
+        msg.attach(alt_part)
+
+        # Attach CID Images for 100% reliable rendering in Gmail
+        if os.path.exists(BUILDING_LOGO_PATH):
+            try:
+                with open(BUILDING_LOGO_PATH, "rb") as f:
+                    img = MIMEImage(f.read())
+                    img.add_header("Content-ID", "<gem_logo>")
+                    img.add_header("Content-Disposition", "inline", filename="gem_logo.png")
+                    msg.attach(img)
+            except Exception as e:
+                print(f"[Warning] Could not attach building logo: {e}")
+
+        if os.path.exists(SHIELD_LOGO_PATH):
+            try:
+                with open(SHIELD_LOGO_PATH, "rb") as f:
+                    img = MIMEImage(f.read())
+                    img.add_header("Content-ID", "<shield_logo>")
+                    img.add_header("Content-Disposition", "inline", filename="shield_logo.png")
+                    msg.attach(img)
+            except Exception as e:
+                print(f"[Warning] Could not attach shield logo: {e}")
 
         try:
             with smtplib.SMTP_SSL(self.SMTP_SERVER, self.SMTP_PORT, timeout=25) as server:
@@ -166,7 +195,6 @@ class EmailNotifier:
             </div>
             """
 
-        # Complete HTML with SVG Hero & Footer
         return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -178,41 +206,55 @@ class EmailNotifier:
     <center style="width:100%; background-color:#f1f5f9; padding:20px 0;">
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:600px; margin:0 auto; background-color:#ffffff; border-radius:14px; overflow:hidden; box-shadow:0 4px 14px rgba(0,0,0,0.06);">
             
-            <!-- HERO HEADER -->
+            <!-- HERO HEADER WITH EXACT GEOMETRIC DESIGN -->
             <tr>
-                <td align="center" style="background: linear-gradient(145deg, #0d1726 0%, #152238 50%, #1d3356 100%); padding:34px 24px 28px 24px; text-align:center;">
+                <td style="background-color:#0d172a; background: #0d172a linear-gradient(125deg, #09111e 0%, #0d172a 58%, #162335 58.5%, #1e2e46 60%, #566882 60.5%, #76869d 100%); padding:24px 20px 24px 20px; text-align:center;">
                     
-                    <!-- SVG GOVERNMENT EMBLEM ICON -->
-                    <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 10px auto;">
+                    <!-- TOP BRANDING ROW (3 COLUMNS) -->
+                    <table width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-bottom:12px;">
                         <tr>
-                            <td align="center">
-                                <svg width="38" height="38" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 2L2 7V9H22V7L12 2Z" fill="#60a5fa"/>
-                                    <rect x="4" y="10" width="2.5" height="8" rx="0.5" fill="#93c5fd"/>
-                                    <rect x="9" y="10" width="2.5" height="8" rx="0.5" fill="#93c5fd"/>
-                                    <rect x="14" y="10" width="2.5" height="8" rx="0.5" fill="#93c5fd"/>
-                                    <rect x="19" y="10" width="2.5" height="8" rx="0.5" fill="#93c5fd"/>
-                                    <path d="M2 19H22V22H2V19Z" fill="#60a5fa"/>
-                                </svg>
+                            <!-- LEFT: BUSINESS EXCELLENCE -->
+                            <td width="36%" valign="top" align="left" style="padding-top:2px;">
+                                <div style="font-size:7.5px; font-weight:800; color:#94a3b8; letter-spacing:1.8px; text-transform:uppercase; font-family:monospace, sans-serif;">
+                                    BUSINESS EXCELLENCE
+                                </div>
+                                <div style="font-size:6.5px; font-weight:600; color:#64748b; letter-spacing:0.8px; margin-top:4px; font-family:monospace, sans-serif;">
+                                    <span style="border-bottom:1px solid #64748b; padding-bottom:1px;">PEOPLE</span> &nbsp;/&nbsp; STRATEGY &nbsp;/&nbsp; RESULTS
+                                </div>
+                            </td>
+
+                            <!-- CENTER: BUILDING ICON -->
+                            <td width="28%" valign="top" align="center">
+                                <img src="cid:gem_logo" width="38" height="38" alt="GeM Emblem" style="display:block; margin:0 auto; width:38px; height:38px;" />
+                            </td>
+
+                            <!-- RIGHT: HIGHER STANDARD -->
+                            <td width="36%" valign="top" align="right" style="padding-top:2px;">
+                                <div style="font-size:7.5px; font-weight:800; color:#334155; letter-spacing:1px; text-transform:uppercase; font-family:monospace, sans-serif;">
+                                    HIGHER STANDARD
+                                </div>
+                                <div style="font-size:6.5px; font-weight:600; color:#334155; letter-spacing:0.8px; margin-top:4px; font-family:monospace, sans-serif;">
+                                    STRONGER TOMORROW
+                                </div>
                             </td>
                         </tr>
                     </table>
 
                     <!-- SUB-TITLE -->
-                    <div style="font-size:11px; font-weight:700; color:#93c5fd; letter-spacing:1.8px; text-transform:uppercase; margin-bottom:8px;">
+                    <div style="font-size:10.5px; font-weight:800; color:#38bdf8; letter-spacing:1.8px; text-transform:uppercase; margin-bottom:8px;">
                         GOVERNMENT E-MARKETPLACE
                     </div>
 
-                    <!-- MAIN TITLE -->
-                    <div style="font-size:26px; font-weight:900; color:#ffffff; letter-spacing:-0.5px; margin-bottom:14px;">
+                    <!-- MAIN TITLE (REFINED & SLIGHTLY SMALLER SIZE) -->
+                    <div style="font-size:22px; font-weight:800; color:#ffffff; letter-spacing:-0.4px; margin-bottom:12px;">
                         Daily Tender Alerts
                     </div>
 
                     <!-- PILL BADGE -->
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 10px auto;">
                         <tr>
-                            <td style="background-color:#2563eb; padding:6px 18px; border-radius:20px;">
-                                <span style="font-size:13px; font-weight:700; color:#ffffff; letter-spacing:0.3px;">
+                            <td style="background-color:#2563eb; padding:7px 22px; border-radius:22px; box-shadow:0 3px 10px rgba(37,99,235,0.35);">
+                                <span style="font-size:13px; font-weight:800; color:#ffffff; letter-spacing:0.3px;">
                                     {total_count} New Tenders Found Today
                                 </span>
                             </td>
@@ -249,14 +291,11 @@ class EmailNotifier:
             <tr>
                 <td align="center" style="background-color:#0b1322; padding:30px 24px; text-align:center; color:#94a3b8;">
                     
-                    <!-- SVG SHIELD ICON -->
+                    <!-- SHIELD ICON (CID) -->
                     <table role="presentation" cellpadding="0" cellspacing="0" border="0" align="center" style="margin:0 auto 10px auto;">
                         <tr>
                             <td align="center">
-                                <svg width="30" height="30" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M12 2L4 5V11.09C4 16.14 7.41 20.85 12 22C16.59 20.85 20 16.14 20 11.09V5L12 2Z" fill="#1e293b" stroke="#38bdf8" stroke-width="1.8"/>
-                                    <path d="M9 12L11 14L15 10" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
+                                <img src="cid:shield_logo" width="30" height="30" alt="Verified Shield" style="display:block; margin:0 auto; width:30px; height:30px;" />
                             </td>
                         </tr>
                     </table>
